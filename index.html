@@ -177,10 +177,7 @@
         .search-builder-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
         .search-builder-title i { color: var(--red); margin-left: 6px; }
         .search-builder-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-        .search-builder-fields label { display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 500; }
-        .search-builder-fields label.search-suffix-toggle { flex-direction: row; align-items: center; align-self: end; padding-bottom: 12px; cursor: pointer; }
-        .search-suffix-toggle input { accent-color: var(--red); width: 16px; height: 16px; }
-        .search-input {
+        .search-builder-fields label { display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 500; }        .search-input {
             width: 100%; min-height: 52px; background: var(--field); color: var(--text);
             border: 1px solid var(--border-strong); border-radius: 12px; padding: 13px 15px; font-size: 16px;
         }
@@ -657,14 +654,8 @@
                 <div class="search-builder-title"><i class="fa-brands fa-discord"></i> رسالة البحث في ديسكورد</div>
                 <div id="searchTypeSelector" class="attendance-mode-selector search-type-selector"></div>
                 <div class="search-builder-fields">
-                    <label>اليوزر
-                        <input type="text" id="searchUser" class="search-input" dir="ltr" autocomplete="off" placeholder="l.3eb">
-                    </label>
-                    <label>الـ ID (لساعات البوت)
-                        <input type="text" id="searchId" class="search-input" dir="ltr" autocomplete="off" inputmode="numeric">
-                    </label>
-                    <label class="search-suffix-toggle">
-                        <input type="checkbox" id="searchNoSuffix"> روم التقارير بدون ~1
+                    <label>اليوزر / ID
+                        <input type="text" id="searchUser" class="search-input" dir="ltr" autocomplete="off">
                     </label>
                     <label>تاريخ آخر ترقية
                         <input type="date" id="searchDate" class="search-input" dir="ltr">
@@ -1160,17 +1151,17 @@ function processAttendance(events, mode) {
         // كل نوع وله رسائل البحث الخاصة به، و {user} {id} {date} تُستبدل بقيم الخانات
         const SEARCH_TYPES = [
             { id: 'medic', label: 'مسعف', reportCalc: true, searches: [
-                { label: 'تقارير العمليات', text: 'mentions: {user} in: 📝〢تقارير-العمليات~1 after: {date}' },
-                { label: 'تقارير النائب', text: 'from: {user} in: 📝〢تقارير-العمليات~1 after: {date}' },
+                { label: 'تقارير العمليات', text: 'mentions: {user} in: 📝〢تقارير-العمليات after: {date}' },
+                { label: 'تقارير النائب', text: 'from: {user} in: 📝〢تقارير-العمليات after: {date}' },
                 { label: 'تواجد الأيام', text: 'from: {user} in: 📝〢دفتر-الحضور after: {date}' }
             ]},
             { id: 'field', label: 'مشرف ميداني', searches: [
-                { label: 'تقارير الإشراف', text: 'mentions: {user} in: 📝〢تقارير-العمليات~1 after: {date}' },
+                { label: 'تقارير الإشراف', text: 'mentions: {user} in: 📝〢تقارير-العمليات after: {date}' },
                 { label: 'ساعات البوت', text: 'in: "سجلات تسجيل الدخول" after: {date} {id}' }
             ]},
             { id: 'certified', label: 'معتمد', searches: [
                 { label: 'دفتر حضور المعتمد', text: 'from: {user} in: 📝〢حضور-المعتمد after: {date}' },
-                { label: 'تقارير الإشراف', text: 'mentions: {user} in: 📝〢تقارير-العمليات~1 after: {date}' }
+                { label: 'تقارير الإشراف', text: 'mentions: {user} in: 📝〢تقارير-العمليات after: {date}' }
             ]},
             { id: 'course', label: 'دورة إشراف', searches: [
                 { label: 'تواجد الأيام', text: 'from: {user} in: 📝〢دفتر-الحضور after: {date}' },
@@ -1221,10 +1212,8 @@ function processAttendance(events, mode) {
 
         function updateSearchMessage() {
             const user = document.getElementById('searchUser').value.trim().replace(/^@/, '');
-            const id = document.getElementById('searchId').value.trim().replace(/\D/g, '');
-            const noSuffix = document.getElementById('searchNoSuffix').checked;
-            try { localStorage.setItem('searchNoSuffix', noSuffix ? '1' : ''); } catch (err) {}
-            const values = { user: user, id: id, date: document.getElementById('searchDate').value };
+            // اليوزر والـ ID خانة واحدة
+            const values = { user: user, id: user, date: document.getElementById('searchDate').value };
             const type = SEARCH_TYPES.find(t => t.id === currentSearchType);
             document.getElementById('reportCalc').hidden = !type.reportCalc;
             const container = document.getElementById('searchOutputs');
@@ -1250,10 +1239,7 @@ function processAttendance(events, mode) {
                 const output = document.createElement('div');
                 output.className = 'search-output';
                 output.dir = 'ltr';
-                // بعض الناس عندهم روم واحد بهذا الاسم، فديسكورد ما يضيف له ~1
-                let text = search.text.replace(/\{(user|id|date)\}/g, (m, key) => values[key]);
-                if (noSuffix) text = text.replace(/~1(?=\s)/g, '');
-                output.textContent = ready ? text : '';
+                output.textContent = ready ? search.text.replace(/\{(user|id|date)\}/g, (m, key) => values[key]) : '';
 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'mode-btn copy-search-btn';
@@ -1292,8 +1278,7 @@ function processAttendance(events, mode) {
             }
         }
 
-        try { document.getElementById('searchNoSuffix').checked = localStorage.getItem('searchNoSuffix') === '1'; } catch (err) {}
-        ['searchUser', 'searchId', 'searchDate', 'searchNoSuffix'].forEach(id => {
+        ['searchUser', 'searchDate'].forEach(id => {
             document.getElementById(id).addEventListener('input', updateSearchMessage);
         });
         renderSearchTypes();
